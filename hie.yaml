@@ -1,0 +1,13 @@
+cradle:
+  stack:
+    - path: "./src"
+      component: "querygen:lib"
+
+    - path: "./app/Main.hs"
+      component: "querygen:exe:querygen-exe"
+
+    - path: "./app/Paths_querygen.hs"
+      component: "querygen:exe:querygen-exe"
+
+    - path: "./test"
+      component: "querygen:test:querygen-test"
