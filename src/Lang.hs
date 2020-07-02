@@ -4,6 +4,7 @@ module Lang
 where
 
 import           Data.List                      ( intercalate )
+import           Data.Maybe                     ( fromMaybe )
 -- | MatchType is a matcher
 data MatchType = MatchEquals | MatchNotEquals | MatchRegexp | MatchNotRegexp
 
@@ -91,10 +92,43 @@ instance Show InstantVector where
                                 Topk     v -> show v
                                 Quantile v -> show v
                 y -> concat [show y, "(", show vec, ")"]
-        show _ = ""
+        show (VecFn fn) = undefined
+
+-- Note: Not including larger ranges for simplicty/testing difficulties.
+data TimeRange = Seconds Int | Minutes Int
+
+instance Show TimeRange where
+        show (Seconds x) = show x ++ "s"
+        show (Minutes x) = show x ++ "m"
+
+data RangeVector = MetricRange Metric TimeRange | SubQuery InstantVector TimeRange TimeRange
+
+instance Show RangeVector where
+        show x = case x of
+                MetricRange m t -> concat [show m, "[", show t, "]"]
+                SubQuery vec x y ->
+                        concat [show x, "[", show x, ":", show y, "]"]
 
 data Function = Vector Scalar | Round InstantVector (Maybe Int) | Sqrt InstantVector | Floor InstantVector | Ceil InstantVector | Rate RangeVector | Ln InstantVector | Increase RangeVector
 
-data RangeVector = MetricRange Metric Int Int | SubQuery InstantVector Int Int
+instance Show Function where
+        show x = concat [fn, "(", innards, ")"]
+            where
+                (fn, innards) = case x of
+                        Vector x -> ("vector", show x)
+                        Round x y ->
+                                ("round", concat [show x, show (fromMaybe 1 y)])
+                        Sqrt     v -> ("sqrt", show v)
+                        Floor    v -> ("floor", show v)
+                        Ceil     v -> ("ceil", show v)
+                        Rate     r -> ("rate", show r)
+                        Ln       v -> ("ln", show v)
+                        Increase r -> ("increase", show r)
 
-data Expr = InstantVector | RangeVector
+data AST = ASTScalar Scalar | InstantVector InstantVector | RangeVector RangeVector
+
+instance Show AST where
+  show x = case x of
+    ASTScalar v -> show v
+    InstantVector v -> show v
+    RangeVector v -> show v
