@@ -65,13 +65,6 @@ instance Show TwoArityAggregator where
                 Topk     _ -> "topk"
                 Quantile _ -> "quantile_over_time"
 
-data Scalar = Scalar (Either String Float)
-
-instance Show Scalar where
-        show (Scalar x) = case x of
-                Left  v -> v
-                Right v -> show v
-
 data Metric = Metric String [Selector]
 
 instance Show Metric where
@@ -79,7 +72,7 @@ instance Show Metric where
         show (Metric x ys) = concat [x, "{", labels, "}"]
                 where labels = intercalate "," $ map show ys
 
-data InstantVector = Operator Operator InstantVector InstantVector | Aggregator Aggregator InstantVector | VecFn Function
+data InstantVector = Operator Operator InstantVector InstantVector | Aggregator Aggregator InstantVector | VecFn Function | Scalar Int
 
 instance Show InstantVector where
         show (Operator op vec1 vec2) = concat [show vec1, show op, show vec2]
@@ -92,7 +85,8 @@ instance Show InstantVector where
                                 Topk     v -> show v
                                 Quantile v -> show v
                 y -> concat [show y, "(", show vec, ")"]
-        show (VecFn fn) = undefined
+        show (VecFn fn) = show fn
+        show (Scalar v) = show v
 
 -- Note: Not including larger ranges for simplicty/testing difficulties.
 data TimeRange = Seconds Int | Minutes Int
@@ -109,7 +103,7 @@ instance Show RangeVector where
                 SubQuery vec x y ->
                         concat [show x, "[", show x, ":", show y, "]"]
 
-data Function = Vector Scalar | Round InstantVector (Maybe Int) | Sqrt InstantVector | Floor InstantVector | Ceil InstantVector | Rate RangeVector | Ln InstantVector | Increase RangeVector
+data Function = Vector Int | Round InstantVector (Maybe Int) | Sqrt InstantVector | Floor InstantVector | Ceil InstantVector | Rate RangeVector | Ln InstantVector | Increase RangeVector
 
 instance Show Function where
         show x = concat [fn, "(", innards, ")"]
@@ -125,10 +119,16 @@ instance Show Function where
                         Ln       v -> ("ln", show v)
                         Increase r -> ("increase", show r)
 
-data AST = ASTScalar Scalar | InstantVector InstantVector | RangeVector RangeVector
+data AST = ASTScalar Int | InstantVector InstantVector | RangeVector RangeVector
 
 instance Show AST where
   show x = case x of
     ASTScalar v -> show v
     InstantVector v -> show v
     RangeVector v -> show v
+
+
+qry = InstantVector $ Operator Mul (VecFn $ rate) (Scalar 2)
+  where
+    rate = Rate $ MetricRange metric (Minutes 1)
+    metric = Metric "metric" [Selector "foo" MatchEquals "bar", Selector "bazz" MatchNotEquals "buff"]
