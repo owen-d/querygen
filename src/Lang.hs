@@ -72,21 +72,31 @@ instance Show Metric where
         show (Metric x ys) = concat [x, "{", labels, "}"]
                 where labels = intercalate "," $ map show ys
 
-data InstantVector = Operator Operator InstantVector InstantVector | Aggregator Aggregator InstantVector | VecFn Function | Scalar Int
+data Grouping = Grouping { groups :: [String]
+                         , without :: Bool
+                         }
+
+instance Show Grouping where
+        show (Grouping [] False) = " by ()"
+        show (Grouping xs False) = " by(" ++ (intercalate "," xs) ++ ")"
+        show (Grouping [] True) = []
+        show (Grouping xs True) = " without(" ++ (intercalate "," xs) ++ ")"
+
+data InstantVector = Operator Operator InstantVector InstantVector | Aggregator Aggregator Grouping InstantVector | VecFn Function | Scalar Int
 
 instance Show InstantVector where
-        show (Operator op vec1 vec2) = concat [show vec1, show op, show vec2]
-        show (Aggregator agg vec   ) = case agg of
+        show (Operator   op  vec1 vec2) = intercalate " " [show vec1, show op, show vec2]
+        show (Aggregator agg grp  vec ) = case agg of
                 TwoArityAggregator x -> concat
-                        [show x, "(", v, ",", show vec, ")"]
+                        [show x, show grp, "(", v, ",", show vec, ")"]
                     where
                         v = case x of
                                 Bottomk  v -> show v
                                 Topk     v -> show v
                                 Quantile v -> show v
-                y -> concat [show y, "(", show vec, ")"]
-        show (VecFn fn) = show fn
-        show (Scalar v) = show v
+                y -> concat [show y, show grp, "(", show vec, ")"]
+        show (VecFn  fn) = show fn
+        show (Scalar v ) = show v
 
 -- Note: Not including larger ranges for simplicty/testing difficulties.
 data TimeRange = Seconds Int | Minutes Int
@@ -122,13 +132,18 @@ instance Show Function where
 data AST = ASTScalar Int | InstantVector InstantVector | RangeVector RangeVector
 
 instance Show AST where
-  show x = case x of
-    ASTScalar v -> show v
-    InstantVector v -> show v
-    RangeVector v -> show v
+        show x = case x of
+                ASTScalar     v -> show v
+                InstantVector v -> show v
+                RangeVector   v -> show v
 
 
-qry = InstantVector $ Operator Mul (VecFn $ rate) (Scalar 2)
-  where
-    rate = Rate $ MetricRange metric (Minutes 1)
-    metric = Metric "metric" [Selector "foo" MatchEquals "bar", Selector "bazz" MatchNotEquals "buff"]
+qry = Aggregator Sum groupBy $ Operator Mul (VecFn $ rate) (Scalar 2)
+    where
+        rate   = Rate $ MetricRange metric (Minutes 1)
+        metric = Metric
+                "metric"
+                [ Selector "foo"  MatchEquals    "bar"
+                , Selector "bazz" MatchNotEquals "buzz"
+                ]
+        groupBy = Grouping {groups=["bazz", "borg"], without=False}
