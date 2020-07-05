@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: bfad5382f0ca555c1f8a12fe5e13f0c2c210ecccd61e6a58281ff52c3404ea97
+-- hash: 21a3f47d3af77171e09743069cd21e753c7172a996886dbb6008a862bc879c84
 
 name:           querygen
 version:        0.1.0.0
@@ -27,6 +27,7 @@ source-repository head
 
 library
   exposed-modules:
+      Embed
       Lang
       Lib
   other-modules:
@@ -34,7 +35,9 @@ library
   hs-source-dirs:
       src
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
+    , bytestring
   default-language: Haskell2010
 
 executable querygen-exe
@@ -45,7 +48,9 @@ executable querygen-exe
       app
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
+    , bytestring
     , querygen
   default-language: Haskell2010
 
@@ -58,6 +63,8 @@ test-suite querygen-test
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
+    , bytestring
     , querygen
   default-language: Haskell2010

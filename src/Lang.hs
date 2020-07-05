@@ -1,7 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Lang
-        ()
-where
+module Lang where
 
 import           Data.List                      ( intercalate )
 import           Data.Maybe                     ( fromMaybe )
@@ -70,7 +68,7 @@ data Metric = Metric String [Selector]
 instance Show Metric where
         show (Metric x []) = x
         show (Metric x ys) = concat [x, "{", labels, "}"]
-                where labels = intercalate "," $ map show ys
+                where labels = intercalate ", " $ map show ys
 
 data Grouping = Grouping { groups :: [String]
                          , without :: Bool
@@ -78,23 +76,24 @@ data Grouping = Grouping { groups :: [String]
 
 instance Show Grouping where
         show (Grouping [] False) = " by ()"
-        show (Grouping xs False) = " by(" ++ (intercalate "," xs) ++ ")"
-        show (Grouping [] True) = []
-        show (Grouping xs True) = " without(" ++ (intercalate "," xs) ++ ")"
+        show (Grouping xs False) = " by(" ++ (intercalate ", " xs) ++ ")"
+        show (Grouping [] True ) = []
+        show (Grouping xs True ) = " without(" ++ (intercalate ", " xs) ++ ")"
 
 data InstantVector = Operator Operator InstantVector InstantVector | Aggregator Aggregator Grouping InstantVector | VecFn Function | Scalar Int
 
 instance Show InstantVector where
-        show (Operator   op  vec1 vec2) = intercalate " " [show vec1, show op, show vec2]
-        show (Aggregator agg grp  vec ) = case agg of
+        show (Operator op vec1 vec2) =
+                intercalate " " [show vec1, show op, show vec2]
+        show (Aggregator agg grp vec) = case agg of
                 TwoArityAggregator x -> concat
-                        [show x, show grp, "(", v, ",", show vec, ")"]
+                        [show x, show grp, " (", v, ",", show vec, ")"]
                     where
                         v = case x of
                                 Bottomk  v -> show v
                                 Topk     v -> show v
                                 Quantile v -> show v
-                y -> concat [show y, show grp, "(", show vec, ")"]
+                y -> concat [show y, show grp, " (", show vec, ")"]
         show (VecFn  fn) = show fn
         show (Scalar v ) = show v
 
@@ -146,4 +145,4 @@ qry = Aggregator Sum groupBy $ Operator Mul (VecFn $ rate) (Scalar 2)
                 [ Selector "foo"  MatchEquals    "bar"
                 , Selector "bazz" MatchNotEquals "buzz"
                 ]
-        groupBy = Grouping {groups=["bazz", "borg"], without=False}
+        groupBy = Grouping { groups = ["bazz", "borg"], without = False }
