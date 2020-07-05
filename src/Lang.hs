@@ -24,6 +24,12 @@ data Labels = Labels [Selector]
 instance HasLabels Labels where
   labels x = x
 
+instance Semigroup Labels where
+  (Labels xs) <> (Labels ys) = Labels (xs ++ ys)
+
+instance Monoid Labels where
+  mempty = Labels []
+
 instance Show Labels where
   show (Labels []) = "{}"
   show (Labels xs) = "{" ++ ls ++ "}"
