@@ -20,10 +20,12 @@ embeddedMetric = "__embedded_queries__"
 newtype Encoded = Encoded {decode :: [InstantVector]}
 
 instance ToJSON Encoded where
-  toJSON x = A.object [ queryLabel .= queries ]
+  toJSON x = A.object [ "Concat" .= queries ]
     where queries = map show $ decode  x
 
 instance Show Encoded where
-        show = CL.unpack . A.encode
+        show x = show $ Metric embeddedMetric [Selector queryLabel MatchEquals queries]
+          where
+          queries = (CL.unpack . A.encode )x
 
 x = Encoded [qry]
