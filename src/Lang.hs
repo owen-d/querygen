@@ -16,6 +16,22 @@ instance Show MatchType where
 -- | Selector is selection
 data Selector = Selector String MatchType String
 
+instance HasLabels Selector where
+  labels x = Labels [x]
+
+data Labels = Labels [Selector]
+
+instance HasLabels Labels where
+  labels x = x
+
+instance Show Labels where
+  show (Labels []) = "{}"
+  show (Labels xs) = "{" ++ ls ++ "}"
+    where ls = intercalate ", " $ map show xs
+
+class HasLabels a where
+  labels :: a -> Labels
+
 instance Show Selector where
         show (Selector label mt matcher) = concat
                 [quote, label, quote, (show mt), quote, matcher, quote]
@@ -63,12 +79,10 @@ instance Show TwoArityAggregator where
                 Topk     _ -> "topk"
                 Quantile _ -> "quantile_over_time"
 
-data Metric = Metric String [Selector]
+data Metric = Metric String Labels
 
 instance Show Metric where
-        show (Metric x []) = x
-        show (Metric x ys) = concat [x, "{", labels, "}"]
-                where labels = intercalate ", " $ map show ys
+  show (Metric x ls) = x ++ (show ls)
 
 data Grouping = Grouping { groups :: [String]
                          , without :: Bool
@@ -141,7 +155,7 @@ qry = Aggregator Sum groupBy $ Operator Mul (VecFn $ rate) (Scalar 2)
     where
         rate   = Rate $ MetricRange metric (Minutes 1)
         metric = Metric
-                "metric"
+                "metric" $ Labels
                 [ Selector "foo"  MatchEquals    "bar"
                 , Selector "bazz" MatchNotEquals "buzz"
                 ]
