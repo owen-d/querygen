@@ -17,23 +17,23 @@ instance Show MatchType where
 data Selector = Selector String MatchType String
 
 instance HasLabels Selector where
-  labels x = Labels [x]
+        labels x = Labels [x]
 
 data Labels = Labels [Selector]
 
 instance HasLabels Labels where
-  labels x = x
+        labels x = x
 
 instance Semigroup Labels where
-  (Labels xs) <> (Labels ys) = Labels (xs ++ ys)
+        (Labels xs) <> (Labels ys) = Labels (xs ++ ys)
 
 instance Monoid Labels where
-  mempty = Labels []
+        mempty = Labels []
 
 instance Show Labels where
-  show (Labels []) = "{}"
-  show (Labels xs) = "{" ++ ls ++ "}"
-    where ls = intercalate ", " $ map show xs
+        show (Labels []) = "{}"
+        show (Labels xs) = "{" ++ ls ++ "}"
+                where ls = intercalate ", " $ map show xs
 
 class HasLabels a where
   labels :: a -> Labels
@@ -67,28 +67,28 @@ data Aggregator = Avg | Count | CountValues | Max | Min  | Stddev | Stdvar | Sum
 
 instance Show Aggregator where
         show x = case x of
-                Avg                  -> "avg"
-                Count                -> "count"
-                CountValues          -> "count_values"
-                Max                  -> "max"
-                Min                  -> "min"
-                Stddev               -> "stdev"
-                Stdvar               -> "stdvar"
-                Sum                  -> "sum"
-                TwoArityAggregator x -> show x
+                Avg                    -> "avg"
+                Count                  -> "count"
+                CountValues            -> "count_values"
+                Max                    -> "max"
+                Min                    -> "min"
+                Stddev                 -> "stdev"
+                Stdvar                 -> "stdvar"
+                Sum                    -> "sum"
+                TwoArityAggregator agg -> show agg
 
 data TwoArityAggregator = Bottomk Int | Quantile Float | Topk Int
 
 instance Show TwoArityAggregator where
         show x = case x of
-                Bottomk  v -> "bottomk"
+                Bottomk  _ -> "bottomk"
                 Topk     _ -> "topk"
                 Quantile _ -> "quantile_over_time"
 
 data Metric = Metric String Labels
 
 instance Show Metric where
-  show (Metric x ls) = x ++ (show ls)
+        show (Metric x ls) = x ++ (show ls)
 
 data Grouping = Grouping { groups :: [String]
                          , without :: Bool
@@ -100,7 +100,7 @@ instance Show Grouping where
         show (Grouping [] True ) = []
         show (Grouping xs True ) = " without(" ++ (intercalate ", " xs) ++ ")"
 
-data InstantVector = Operator Operator InstantVector InstantVector | Aggregator Aggregator Grouping InstantVector | VecFn Function | Scalar Int
+data InstantVector = Operator Operator InstantVector InstantVector | Aggregator Aggregator Grouping InstantVector | VecFn Function | MetricVec Metric | Scalar Int
 
 instance Show InstantVector where
         show (Operator op vec1 vec2) =
@@ -110,12 +110,13 @@ instance Show InstantVector where
                         [show x, show grp, " (", v, ",", show vec, ")"]
                     where
                         v = case x of
-                                Bottomk  v -> show v
-                                Topk     v -> show v
-                                Quantile v -> show v
+                                Bottomk  v' -> show v'
+                                Topk     v' -> show v'
+                                Quantile v' -> show v'
                 y -> concat [show y, show grp, " (", show vec, ")"]
-        show (VecFn  fn) = show fn
-        show (Scalar v ) = show v
+        show (VecFn     fn) = show fn
+        show (Scalar    v ) = show v
+        show (MetricVec m ) = show m
 
 -- Note: Not including larger ranges for simplicty/testing difficulties.
 data TimeRange = Seconds Int | Minutes Int
@@ -129,8 +130,15 @@ data RangeVector = MetricRange Metric TimeRange | SubQuery InstantVector TimeRan
 instance Show RangeVector where
         show x = case x of
                 MetricRange m t -> concat [show m, "[", show t, "]"]
-                SubQuery vec x y ->
-                        concat [show x, "[", show x, ":", show y, "]"]
+                SubQuery vec range resolution ->
+                        concat
+                                [ show vec
+                                , "["
+                                , show range
+                                , ":"
+                                , show resolution
+                                , "]"
+                                ]
 
 data Function = Vector Int | Round InstantVector (Maybe Int) | Sqrt InstantVector | Floor InstantVector | Ceil InstantVector | Rate RangeVector | Ln InstantVector | Increase RangeVector
 
@@ -138,9 +146,11 @@ instance Show Function where
         show x = concat [fn, "(", innards, ")"]
             where
                 (fn, innards) = case x of
-                        Vector x -> ("vector", show x)
-                        Round x y ->
-                                ("round", concat [show x, show (fromMaybe 1 y)])
+                        Vector x' -> ("vector", show x')
+                        Round x' y ->
+                                ( "round"
+                                , concat [show x', show (fromMaybe 1 y)]
+                                )
                         Sqrt     v -> ("sqrt", show v)
                         Floor    v -> ("floor", show v)
                         Ceil     v -> ("ceil", show v)
@@ -157,11 +167,11 @@ instance Show AST where
                 RangeVector   v -> show v
 
 
+qry :: InstantVector
 qry = Aggregator Sum groupBy $ Operator Mul (VecFn $ rate) (Scalar 2)
     where
         rate   = Rate $ MetricRange metric (Minutes 1)
-        metric = Metric
-                "metric" $ Labels
+        metric = Metric "metric" $ Labels
                 [ Selector "foo"  MatchEquals    "bar"
                 , Selector "bazz" MatchNotEquals "buzz"
                 ]

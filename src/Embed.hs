@@ -10,18 +10,19 @@ import           Data.Aeson                     ( ToJSON
                                                 , (.=)
                                                 )
 
-embed :: InstantVector -> InstantVector
-embed v = v
+embed :: [InstantVector] -> InstantVector
+embed = MetricVec . (Metric embeddedMetric) . labels . Encoded
 
+queryLabel :: String
 queryLabel = "__cortex_queries__"
 
+embeddedMetric :: String
 embeddedMetric = "__embedded_queries__"
 
 newtype Encoded = Encoded {decode :: [InstantVector]}
 
 instance HasLabels Encoded where
-        labels (Encoded xs) =
-                Labels $ [Selector queryLabel MatchEquals queries]
+        labels x = Labels $ [Selector queryLabel MatchEquals queries]
                 where queries = (CL.unpack . A.encode) x
 
 
@@ -30,6 +31,7 @@ instance ToJSON Encoded where
                 where queries = map show $ decode x
 
 instance Show Encoded where
-        show x = show $ Metric embeddedMetric (labels x)
+        show (Encoded xs) = show $ embed xs
 
-x = Encoded [qry]
+tst :: Encoded
+tst = Encoded [qry]

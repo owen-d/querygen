@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 21a3f47d3af77171e09743069cd21e753c7172a996886dbb6008a862bc879c84
+-- hash: 7d24beff7b6e42d4f1b6423ae878485864975e4c317d664682078748b4e9832a
 
 name:           querygen
 version:        0.1.0.0
@@ -30,10 +30,12 @@ library
       Embed
       Lang
       Lib
+      Sharding
   other-modules:
       Paths_querygen
   hs-source-dirs:
       src
+  ghc-options: -Wall -Werror
   build-depends:
       aeson
     , base >=4.7 && <5
