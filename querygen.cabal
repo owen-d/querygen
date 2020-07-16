@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 7d24beff7b6e42d4f1b6423ae878485864975e4c317d664682078748b4e9832a
+-- hash: 028062e1ccee15bca44058cf700590f15cad729289b25e48ce177f7899d92874
 
 name:           querygen
 version:        0.1.0.0
@@ -27,6 +27,7 @@ source-repository head
 
 library
   exposed-modules:
+      AST
       Embed
       Lang
       Lib

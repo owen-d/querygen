@@ -63,9 +63,9 @@ instance Show Operator where
                 Pow    -> "^"
                 Sub    -> "-"
 
-data Aggregator = Avg | Count | CountValues | Max | Min  | Stddev | Stdvar | Sum | TwoArityAggregator TwoArityAggregator
+data AggOp = Avg | Count | CountValues | Max | Min  | Stddev | Stdvar | Sum | TwoArityAggOp TwoArityAggOp
 
-instance Show Aggregator where
+instance Show AggOp where
         show x = case x of
                 Avg                    -> "avg"
                 Count                  -> "count"
@@ -75,11 +75,11 @@ instance Show Aggregator where
                 Stddev                 -> "stdev"
                 Stdvar                 -> "stdvar"
                 Sum                    -> "sum"
-                TwoArityAggregator agg -> show agg
+                TwoArityAggOp agg -> show agg
 
-data TwoArityAggregator = Bottomk Int | Quantile Float | Topk Int
+data TwoArityAggOp = Bottomk Int | Quantile Float | Topk Int
 
-instance Show TwoArityAggregator where
+instance Show TwoArityAggOp where
         show x = case x of
                 Bottomk  _ -> "bottomk"
                 Topk     _ -> "topk"
@@ -100,13 +100,13 @@ instance Show Grouping where
         show (Grouping [] True ) = []
         show (Grouping xs True ) = " without(" ++ (intercalate ", " xs) ++ ")"
 
-data InstantVector = Operator Operator InstantVector InstantVector | Aggregator Aggregator Grouping InstantVector | VecFn Function | MetricVec Metric | Scalar Int
+data InstantVector = Operator Operator InstantVector InstantVector | AggOp AggOp Grouping InstantVector | VecFn Function | MetricVec Metric | Scalar Int
 
 instance Show InstantVector where
         show (Operator op vec1 vec2) =
                 intercalate " " [show vec1, show op, show vec2]
-        show (Aggregator agg grp vec) = case agg of
-                TwoArityAggregator x -> concat
+        show (AggOp agg grp vec) = case agg of
+                TwoArityAggOp x -> concat
                         [show x, show grp, " (", v, ",", show vec, ")"]
                     where
                         v = case x of
@@ -168,7 +168,7 @@ instance Show AST where
 
 
 qry :: InstantVector
-qry = Aggregator Sum groupBy $ Operator Mul (VecFn $ rate) (Scalar 2)
+qry = AggOp Sum groupBy $ Operator Mul (VecFn $ rate) (Scalar 2)
     where
         rate   = Rate $ MetricRange metric (Minutes 1)
         metric = Metric "metric" $ Labels
