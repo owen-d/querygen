@@ -1,8 +1,8 @@
-module Sharding
-        ()
-where
+module Sharding where
 
-import           Lang
+import Lang
+
+shardLabel :: [Char]
 shardLabel = "__cortex_shard__"
 
 data Shard = Shard Int Int
