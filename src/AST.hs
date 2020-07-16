@@ -5,62 +5,8 @@
 module AST where
 
 import Data.List (intercalate)
-import Data.Maybe (fromMaybe)
-import Lang (AggOp (..), Grouping (..), Labels (..), MatchType (..), Metric (..), Operator (..), Selector (..), TimeRange (..), TwoArityAggOp (..))
+import Lang
 import Sharding
-
-data InstantVector = MetricVec Metric | Scalar Int
-
-instance Show InstantVector where
-  show (Scalar v) = show v
-  show (MetricVec m) = show m
-
-data Aggregator a = Aggregator AggOp Grouping a
-
-instance Show a => Show (Aggregator a) where
-  show (Aggregator agg grp vec) = case agg of
-    TwoArityAggOp x ->
-      concat
-        [show x, show grp, " (", v, ",", show vec, ")"]
-      where
-        v = case x of
-          Bottomk v' -> show v'
-          Topk v' -> show v'
-          Quantile v' -> show v'
-    y -> concat [show y, show grp, " (", show vec, ")"]
-
-data Function a = Vector Int | Round a (Maybe Int) | Sqrt a | Floor a | Ceil a | Rate (RangeVector a) | Ln a | Increase (RangeVector a)
-
-instance (Show a) => Show (Function a) where
-  show x = concat [fn, "(", innards, ")"]
-    where
-      (fn, innards) = case x of
-        Vector x' -> ("vector", show x')
-        Round x' y ->
-          ( "round",
-            concat [show x', show (fromMaybe 1 y)]
-          )
-        Sqrt v -> ("sqrt", show v)
-        Floor v -> ("floor", show v)
-        Ceil v -> ("ceil", show v)
-        Rate r -> ("rate", show r)
-        Ln v -> ("ln", show v)
-        Increase r -> ("increase", show r)
-
-data RangeVector a = MetricRange Metric TimeRange | SubQuery a TimeRange TimeRange
-
-instance Show a => Show (RangeVector a) where
-  show x = case x of
-    MetricRange m t -> concat [show m, "[", show t, "]"]
-    SubQuery vec range resolution ->
-      concat
-        [ show vec,
-          "[",
-          show range,
-          ":",
-          show resolution,
-          "]"
-        ]
 
 class BinaryOp a b c | a b -> c where
   binOp :: b -> a -> a -> c

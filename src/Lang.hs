@@ -79,6 +79,21 @@ instance Show AggOp where
 
 data TwoArityAggOp = Bottomk Int | Quantile Float | Topk Int
 
+data Aggregator a = Aggregator AggOp Grouping a
+
+instance Show a => Show (Aggregator a) where
+  show (Aggregator agg grp vec) = case agg of
+    TwoArityAggOp x ->
+      concat
+        [show x, show grp, " (", v, ",", show vec, ")"]
+      where
+        v = case x of
+          Bottomk v' -> show v'
+          Topk v' -> show v'
+          Quantile v' -> show v'
+    y -> concat [show y, show grp, " (", show vec, ")"]
+
+
 instance Show TwoArityAggOp where
         show x = case x of
                 Bottomk  _ -> "bottomk"
@@ -100,23 +115,12 @@ instance Show Grouping where
         show (Grouping [] True ) = []
         show (Grouping xs True ) = " without(" ++ (intercalate ", " xs) ++ ")"
 
-data InstantVector = Operator Operator InstantVector InstantVector | AggOp AggOp Grouping InstantVector | VecFn Function | MetricVec Metric | Scalar Int
+data InstantVector = MetricVec Metric | Scalar Int
 
 instance Show InstantVector where
-        show (Operator op vec1 vec2) =
-                intercalate " " [show vec1, show op, show vec2]
-        show (AggOp agg grp vec) = case agg of
-                TwoArityAggOp x -> concat
-                        [show x, show grp, " (", v, ",", show vec, ")"]
-                    where
-                        v = case x of
-                                Bottomk  v' -> show v'
-                                Topk     v' -> show v'
-                                Quantile v' -> show v'
-                y -> concat [show y, show grp, " (", show vec, ")"]
-        show (VecFn     fn) = show fn
-        show (Scalar    v ) = show v
-        show (MetricVec m ) = show m
+  show (Scalar v) = show v
+  show (MetricVec m) = show m
+
 
 -- Note: Not including larger ranges for simplicty/testing difficulties.
 data TimeRange = Seconds Int | Minutes Int
@@ -125,54 +129,36 @@ instance Show TimeRange where
         show (Seconds x) = show x ++ "s"
         show (Minutes x) = show x ++ "m"
 
-data RangeVector = MetricRange Metric TimeRange | SubQuery InstantVector TimeRange TimeRange
+data RangeVector a = MetricRange Metric TimeRange | SubQuery a TimeRange TimeRange
 
-instance Show RangeVector where
-        show x = case x of
-                MetricRange m t -> concat [show m, "[", show t, "]"]
-                SubQuery vec range resolution ->
-                        concat
-                                [ show vec
-                                , "["
-                                , show range
-                                , ":"
-                                , show resolution
-                                , "]"
-                                ]
-
-data Function = Vector Int | Round InstantVector (Maybe Int) | Sqrt InstantVector | Floor InstantVector | Ceil InstantVector | Rate RangeVector | Ln InstantVector | Increase RangeVector
-
-instance Show Function where
-        show x = concat [fn, "(", innards, ")"]
-            where
-                (fn, innards) = case x of
-                        Vector x' -> ("vector", show x')
-                        Round x' y ->
-                                ( "round"
-                                , concat [show x', show (fromMaybe 1 y)]
-                                )
-                        Sqrt     v -> ("sqrt", show v)
-                        Floor    v -> ("floor", show v)
-                        Ceil     v -> ("ceil", show v)
-                        Rate     r -> ("rate", show r)
-                        Ln       v -> ("ln", show v)
-                        Increase r -> ("increase", show r)
-
-data AST = ASTScalar Int | InstantVector InstantVector | RangeVector RangeVector
-
-instance Show AST where
-        show x = case x of
-                ASTScalar     v -> show v
-                InstantVector v -> show v
-                RangeVector   v -> show v
+instance Show a => Show (RangeVector a) where
+  show x = case x of
+    MetricRange m t -> concat [show m, "[", show t, "]"]
+    SubQuery vec range resolution ->
+      concat
+        [ show vec,
+          "[",
+          show range,
+          ":",
+          show resolution,
+          "]"
+        ]
 
 
-qry :: InstantVector
-qry = AggOp Sum groupBy $ Operator Mul (VecFn $ rate) (Scalar 2)
+data Function a = Vector Int | Round a (Maybe Int) | Sqrt a | Floor a | Ceil a | Rate (RangeVector a) | Ln a | Increase (RangeVector a)
+
+instance (Show a) => Show (Function a) where
+  show x = concat [fn, "(", innards, ")"]
     where
-        rate   = Rate $ MetricRange metric (Minutes 1)
-        metric = Metric "metric" $ Labels
-                [ Selector "foo"  MatchEquals    "bar"
-                , Selector "bazz" MatchNotEquals "buzz"
-                ]
-        groupBy = Grouping { groups = ["bazz", "borg"], without = False }
+      (fn, innards) = case x of
+        Vector x' -> ("vector", show x')
+        Round x' y ->
+          ( "round",
+            concat [show x', show (fromMaybe 1 y)]
+          )
+        Sqrt v -> ("sqrt", show v)
+        Floor v -> ("floor", show v)
+        Ceil v -> ("ceil", show v)
+        Rate r -> ("rate", show r)
+        Ln v -> ("ln", show v)
+        Increase r -> ("increase", show r)
