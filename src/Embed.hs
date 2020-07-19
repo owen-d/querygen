@@ -1,37 +1,32 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Embed where
 
-import           Lang
-import qualified Data.ByteString.Lazy.Char8    as CL
-import qualified Data.Aeson                    as A
-import           Data.Aeson                     ( ToJSON
-                                                , toJSON
-                                                , (.=)
-                                                )
+import qualified Data.Aeson as A
+import Data.Aeson
+  ( ToJSON,
+    (.=),
+    encode,
+    toJSON,
+  )
 
-embed :: [InstantVector] -> InstantVector
-embed = MetricVec . (Metric embeddedMetric) . labels . Encoded
-
+import Lang
 queryLabel :: String
 queryLabel = "__cortex_queries__"
 
 embeddedMetric :: String
 embeddedMetric = "__embedded_queries__"
 
-newtype Encoded = Encoded {decode :: [InstantVector]}
+data Encoded a = Encoded {decode :: a}
 
-instance HasLabels Encoded where
-        labels x = Labels $ [Selector queryLabel MatchEquals queries]
-                where queries = (CL.unpack . A.encode) x
+instance ToJSON a => Show (Encoded a) where
+  show x = show $ MetricVec (Metric embeddedMetric ls)
+    where
+      ls = Labels [Selector queryLabel MatchEquals (show . encode . toJSON . decode $ x)]
 
+-- | Merger is a type for how to merge different legs of queries
+data Merger a = Concat a
 
-instance ToJSON Encoded where
-        toJSON x = A.object ["Concat" .= queries]
-                where queries = map show $ decode x
-
-instance Show Encoded where
-        show (Encoded xs) = show $ embed xs
-
-tst :: Encoded
-tst = Encoded [qry]
+instance ToJSON a => ToJSON (Merger a) where
+  toJSON (Concat x) = A.object ["Concat" .= (toJSON x)]

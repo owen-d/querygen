@@ -3,8 +3,13 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module AST where
-
+import Data.Aeson
+  ( ToJSON(..),
+  )
+import qualified Embed as E
+import qualified Data.Aeson as A
 import Data.List (intercalate)
+import qualified Data.Text as T
 import Lang
 import Sharding
 
@@ -41,6 +46,9 @@ data ShardIV = ShardIV Shard InstantVector
 
 -- | ShardQL is an alias for the AST representation of promql with shard annotations
 type ShardQL = AST ShardIV Operator (RangeVector ShardIV)
+
+instance (Show a, Show b, Show c) => ToJSON (AST a b c) where
+  toJSON = toJSON . E.Concat . A.String . T.pack . show
 
 qry :: PromQL
 qry = Aggregation $ Aggregator Sum groupBy rate

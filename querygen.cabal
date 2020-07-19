@@ -38,9 +38,10 @@ library
       src
   ghc-options: -Wall -Werror
   build-depends:
-      aeson
-    , base >=4.7 && <5
-    , bytestring
+                    aeson
+                , base >=4.7 && <5
+                , bytestring
+                , text >= 1.2.4.0
   default-language: Haskell2010
 
 executable querygen-exe
@@ -51,10 +52,11 @@ executable querygen-exe
       app
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      aeson
-    , base >=4.7 && <5
-    , bytestring
-    , querygen
+                    aeson
+                , base >=4.7 && <5
+                , bytestring
+                , querygen
+                , text >= 1.2.4.0
   default-language: Haskell2010
 
 test-suite querygen-test
@@ -66,8 +68,9 @@ test-suite querygen-test
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      aeson
-    , base >=4.7 && <5
-    , bytestring
-    , querygen
+                    aeson
+                , base >=4.7 && <5
+                , bytestring
+                , querygen
+                , text >= 1.2.4.0
   default-language: Haskell2010
