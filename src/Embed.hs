@@ -5,8 +5,8 @@ module Embed where
 
 import qualified Data.Aeson as A
 import Data.Aeson
-  ( ToJSON,
-    (.=),
+  ( (.=),
+    ToJSON,
     encode,
     toJSON,
   )
@@ -26,7 +26,13 @@ instance ToJSON a => Show (Encoded a) where
       ls = Labels [Selector queryLabel MatchEquals (show . encode . toJSON . decode $ x)]
 
 -- | Merger is a type for how to merge different legs of queries
-data Merger a = Concat a
+-- Concat denotes that the resulting queries should have their results concatenated together
+-- Noop denotes no special merging should take place
+data Merger a = Concat a | Noop a
 
 instance ToJSON a => ToJSON (Merger a) where
-  toJSON (Concat x) = A.object ["Concat" .= (toJSON x)]
+  toJSON x = A.object [key .= (toJSON v)]
+    where
+      (key, v) = case x of
+        Concat y -> ("Concat", y)
+        Noop y -> ("Noop", y)

@@ -1,5 +1,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module AST where
@@ -7,6 +8,8 @@ import Data.Aeson
   ( ToJSON(..),
   )
 import qualified Embed as E
+
+
 import qualified Data.Aeson as A
 import Data.List (intercalate)
 import qualified Data.Text as T
