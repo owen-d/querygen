@@ -1,28 +1,17 @@
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module AST where
-import Data.Aeson
-  ( ToJSON(..),
-  )
-import qualified Embed as E
 
-
-import qualified Data.Aeson as A
 import Data.List (intercalate)
-import qualified Data.Text as T
 import Lang
-import Sharding
 
 class BinaryOp a b c | a b -> c where
   binOp :: b -> a -> a -> c
 
 instance BinaryOp InstantVector Operator InstantVector where
-  binOp _ _ _ = undefined
-
-instance BinaryOp ShardIV Operator ShardIV where
   binOp _ _ _ = undefined
 
 -- | AST is a promql-like AST abstracted over three type variables:
@@ -44,15 +33,6 @@ instance (Show a, Show b, Show c) => Show (AST a b c) where
 -- | PromQL is an alias for the AST representation of promql without shard annotations
 type PromQL = AST InstantVector Operator (RangeVector InstantVector)
 
--- | ShardIV is a shard-aware instant vector
-data ShardIV = ShardIV Shard InstantVector
-
--- | ShardQL is an alias for the AST representation of promql with shard annotations
-type ShardQL = AST ShardIV Operator (RangeVector ShardIV)
-
-instance (Show a, Show b, Show c) => ToJSON (AST a b c) where
-  toJSON = toJSON . E.Concat . A.String . T.pack . show
-
 qry :: PromQL
 qry = Aggregation $ Aggregator Sum groupBy rate
   where
@@ -60,7 +40,7 @@ qry = Aggregation $ Aggregator Sum groupBy rate
     rate = Function $ Rate $ MetricRange metric (Minutes 1)
     metric =
       Metric "metric" $
-        Labels
+        Matchers
           [ Selector "foo" MatchEquals "bar",
             Selector "bazz" MatchNotEquals "buzz"
           ]

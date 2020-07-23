@@ -16,27 +16,27 @@ instance Show MatchType where
 -- | Selector is selection
 data Selector = Selector String MatchType String
 
-instance HasLabels Selector where
-        labels x = Labels [x]
+instance HasMatchers Selector where
+        matchers x = Matchers [x]
 
-data Labels = Labels [Selector]
+data Matchers = Matchers [Selector]
 
-instance HasLabels Labels where
-        labels x = x
+instance HasMatchers Matchers where
+        matchers x = x
 
-instance Semigroup Labels where
-        (Labels xs) <> (Labels ys) = Labels (xs ++ ys)
+instance Semigroup Matchers where
+        (Matchers xs) <> (Matchers ys) = Matchers (xs ++ ys)
 
-instance Monoid Labels where
-        mempty = Labels []
+instance Monoid Matchers where
+        mempty = Matchers []
 
-instance Show Labels where
-        show (Labels []) = "{}"
-        show (Labels xs) = "{" ++ ls ++ "}"
+instance Show Matchers where
+        show (Matchers []) = "{}"
+        show (Matchers xs) = "{" ++ ls ++ "}"
                 where ls = intercalate ", " $ map show xs
 
-class HasLabels a where
-  labels :: a -> Labels
+class HasMatchers a where
+  matchers :: a -> Matchers
 
 instance Show Selector where
         show (Selector label mt matcher) = concat
@@ -100,7 +100,7 @@ instance Show TwoArityAggOp where
                 Topk     _ -> "topk"
                 Quantile _ -> "quantile_over_time"
 
-data Metric = Metric String Labels
+data Metric = Metric String Matchers
 
 instance Show Metric where
         show (Metric x ls) = x ++ (show ls)
