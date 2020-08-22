@@ -25,6 +25,8 @@ dependencies:
 - bytestring
 - text
 - containers
+- hashable
+- sort
 
 library:
   source-dirs: src

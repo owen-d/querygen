@@ -2,12 +2,16 @@
 
 module Merging where
 
+import Data.Sort (sort)
 import qualified Data.Aeson as A
+import qualified Data.ByteString.Char8 as C
 import Data.Aeson
   ( (.=),
     ToJSON,
     toJSON,
   )
+
+import Data.Hashable (Hashable(..), hashUsing)
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict (Map)
 
@@ -39,9 +43,21 @@ type Samples = [Sample]
 data Label = Label {lName :: String, lValue :: String}
   deriving (Eq, Ord)
 
-type Labels = [Label]
+instance Hashable Label where
+  hashWithSalt salt x = hashWithSalt salt $ C.pack (lName x ++ lValue x)
+
+newtype Labels = Labels [Label]
+  deriving (Eq, Ord)
+
+instance Hashable Labels where
+  hashWithSalt salt (Labels xs) = hashWithSalt salt $ concatMap join (sort xs)
+    where
+      join x = lName x ++ lValue x
 
 data Series = Series {labels :: Labels, samples :: Samples}
+
+instance Hashable Series where
+  hashWithSalt = hashUsing labels
 
 class Monoid a => SeriesMerger a where
   merge :: a -> [Series]
@@ -51,7 +67,7 @@ mergeSeries f xs = merge . mconcat $ fmap f xs
 
 -- Merge operations
 
-data Sum = Sum (Map Labels Sample)
+newtype Sum = Sum (Map Labels Sample)
 
 instance Semigroup Sum where
   (Sum x) <> (Sum y) = Sum $ Map.unionWith fn x y
